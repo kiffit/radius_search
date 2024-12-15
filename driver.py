@@ -6,52 +6,82 @@ from Point import Point
 from KDTreePointCloud import KDTreePointCloud
 from NaivePointCloud import NaivePointCloud
 from OctreePointCloud import OctreePointCloud
-from PointMethods import get_distance
-
+from VoxelTreePointCloud import VoxelTreePointCloud
+from math import pi
 from random import uniform
 import time
 
 
 def main():
-    points_amount = 1000000
-    radius = .1
-    points_list = [None] * points_amount
+    # This function will generate all test cases and outputs
+    run_tests()
 
-    for i in range(points_amount):
-        points_list[i] = Point(uniform(-1, 1), uniform(-1, 1), uniform(-1, 1))
 
-    print("\nStarting KD-Tree Point Cloud construction...")
+def generate_points(points_amount):
+    return [Point(uniform(-1, 1), uniform(-1, 1), uniform(-1, 1)) for _ in range(points_amount)]
+
+
+def construct_point_clouds(points_list):
+    print(f"=> BEGINNING POINT CLOUD CONSTRUCTION WITH {len(points_list)} POINTS")
+
     st = time.time()
-    kdpc1 = KDTreePointCloud(points_list)
+    npc = NaivePointCloud(points_list)
     et = time.time()
-    print(f"KD-Tree construction finished in {et-st} seconds.")
+    print(f"Naive tree construction finished in {et - st} seconds. (BASE CASE)")
 
-    print("\nStarting Octree Point Cloud construction...")
     st = time.time()
-    octpc1 = OctreePointCloud(points_list)
+    vtpc = VoxelTreePointCloud(points_list, 0.1)  # Voxel size optimized for this set
+    et = time.time()
+    print(f"Voxel tree construction finished in {et - st} seconds.")
+
+    st = time.time()
+    kdpc = KDTreePointCloud(points_list)
+    et = time.time()
+    print(f"KD-Tree construction finished in {et - st} seconds.")
+
+    st = time.time()
+    octpc = OctreePointCloud(points_list)
     et = time.time()
     print(f"Octree construction finished in {et - st} seconds.")
 
-    npc1 = NaivePointCloud(points_list)
+    return npc, vtpc, kdpc, octpc
 
-    print(f"\nStarting r={radius} search on KD-Tree Point Cloud (n={points_amount})...")
+
+def test_point_clouds(npc, vtpc, kdpc, octpc, radius):
+    print(f"\t-> BEGINNING RADIUS SEARCH r={radius} (search coverage: {round((4/3)*pi*radius**3/8*100, 3)}%)")
+
     st = time.time()
-    kdpc1.radius_search(Point(0, 0, 0), radius)
+    npc.radius_search(Point(0, 0, 0), radius)
     et = time.time()
-    print(f"Search finished! Time elapsed: {et-st} seconds.")
+    print(f"\tNaive tree time: {et - st} seconds. (BASE CASE)")
 
-    print(f"\nStarting r={radius} search on Octree Point Cloud (n={points_amount})...")
     st = time.time()
-    octpc1.radius_search(Point(0, 0, 0), radius)
+    vtpc.radius_search(Point(0, 0, 0), radius)
     et = time.time()
-    print(f"Search finished! Time elapsed: {et - st} seconds.")
+    print(f"\tVoxel tree time: {et - st} seconds.")
 
-    print(f"\nStarting r={radius} search on Naive Point Cloud (n={points_amount})...")
     st = time.time()
-    npc1.radius_search(Point(0, 0, 0), radius)
+    kdpc.radius_search(Point(0, 0, 0), radius)
     et = time.time()
-    print(f"Search finished! Time elapsed: {et-st} seconds.")
+    print(f"\tKD-Tree search time: {et-st} seconds.")
 
+    st = time.time()
+    octpc.radius_search(Point(0, 0, 0), radius)
+    et = time.time()
+    print(f"\tOctree search time: {et - st} seconds.")
+
+
+def run_tests():
+    test_point_counts = [10000, 100000, 1000000]
+    test_radius_counts = [0.1, 0.5, 1]
+
+    for points_amount in test_point_counts:
+        print()
+        npc, vtpc, kdpc, octpc = construct_point_clouds(generate_points(points_amount))
+        print()
+        for radius in test_radius_counts:
+            test_point_clouds(npc, vtpc, kdpc, octpc, radius)
+            print()
 
 if __name__ == '__main__':
     main()
